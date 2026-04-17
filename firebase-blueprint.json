@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's name."
+        },
+        "age": {
+          "type": "number",
+          "description": "The user's age."
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["Male", "Female", "Other"],
+          "description": "The user's gender."
+        },
+        "updatedAt": {
+          "type": "timestamp",
+          "description": "When the profile was last updated."
+        }
+      },
+      "required": ["uid", "name", "age", "gender", "updatedAt"]
+    },
+    "Memory": {
+      "title": "Memory",
+      "description": "A fact or memory about the user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user this memory belongs to."
+        },
+        "fact": {
+          "type": "string",
+          "description": "The fact remembered."
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "When the memory was saved."
+        }
+      },
+      "required": ["userId", "fact", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores user profiles."
+    },
+    "/memories/{memoryId}": {
+      "schema": { "$ref": "#/entities/Memory" },
+      "description": "Stores permanent memories for users."
+    }
+  }
+}

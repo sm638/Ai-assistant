@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: memories
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required, immutable) - The ID of the user
+    //   - fact: string (required, max length 1000) - The remembered fact
+    //   - createdAt: timestamp (required, immutable) - When it was saved
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - name: string (required, max length 100)
+    //   - age: number (required, positive)
+    //   - gender: string (required, enum: Male, Female, Other)
+    //   - updatedAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidMemory(data) {
+      return hasOnlyAllowedFields(['userId', 'fact', 'createdAt']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.fact is string && data.fact.size() > 0 && data.fact.size() <= 1000 &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidUserProfile(data) {
+      return hasOnlyAllowedFields(['uid', 'name', 'age', 'gender', 'updatedAt']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.age is number && data.age > 0 && data.age <= 150 &&
+             data.gender is string && data.gender in ['Male', 'Female', 'Other'] &&
+             data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data) && request.resource.data.uid == resource.data.uid;
+    }
+
+    match /memories/{memoryId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidMemory(request.resource.data);
+      allow update: if false; // Memories are immutable once created
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
